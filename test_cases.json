@@ -1,0 +1,107 @@
+[
+    {
+        "case_id": "TC001",
+        "final_output": "最低价格是1200元",
+        "expected_price": 1200
+    },
+    {
+        "case_id": "TC002",
+        "final_output": "最低价格不是1500元，而是1200元",
+        "expected_price": 1200
+    },
+    {
+        "case_id": "TC003",
+        "final_output": "这趟航班最低只需要1200元",
+        "expected_price": 1200
+    },
+    {
+        "case_id": "TC004",
+        "final_output": "原价1500元，优惠后最低价格为1200元",
+        "expected_price": 1200
+    },
+    {
+        "case_id": "TC005",
+        "final_output": "含税1800元，不含税1500元，最低1200元",
+        "expected_price": 1200
+    },
+    {
+        "case_id": "TC006",
+        "final_output": "暂时没有查询到符合条件的航班",
+        "expected_price": null
+    },
+    {
+        "case_id": "TC007",
+        "final_output": "最低价￥1200",
+        "expected_price": 1200
+    },
+    {
+        "case_id": "TC008",
+        "final_output": "最低价一千二百元",
+        "expected_price": 1200
+    },
+    {
+        "case_id": "TC009",
+        "final_output": "经济舱最低980元",
+        "expected_price": 980
+    },
+    {
+        "case_id": "TC010",
+        "final_output": "抱歉，没有找到相关航班信息",
+        "expected_price": null
+    },
+    {
+        "case_id": "TC011",
+        "final_output": "往返共2400元，单程最低1200元",
+        "expected_price": 1200
+    },
+    {
+        "case_id": "TC012",
+        "final_output": "最低票价为1200元左右",
+        "expected_price": 1200
+    },
+    {
+        "case_id": "TC013",
+        "final_output": "最低价格1,200元",
+        "expected_price": 1200
+    },
+    {
+        "case_id": "TC014",
+        "final_output": "经济舱980元，商务舱2400元，您看选哪个？",
+        "expected_price": 980
+    },
+    {
+        "case_id": "TC015",
+        "final_output": "最低价0.12万元",
+        "expected_price": 1200
+    },
+    {
+        "case_id": "TC016",
+        "final_output": "大概一千出头吧",
+        "expected_price": null
+    },
+    {
+        "case_id": "TC017",
+        "final_output": "不是说1200，其实是980才对",
+        "expected_price": 980
+    },
+    {
+        "case_id": "TC018",
+        "final_output": "特价机票880元起，另需支付税费200元",
+        "expected_price": 880
+    },
+    {
+        "case_id": "TC019",
+        "final_output": "航班A为1500元，航班B为1300元，最便宜的我都推荐B",
+        "expected_price": 1300
+    },
+    {
+        "case_id": "TC020",
+        "final_output": "原价3800元，打完折只要1900元",
+        "expected_price": 1900
+    },
+    {
+        "case_id": "TC021",
+        "final_output": "价格嘛，大概几百块的样子",
+        "expected_price": null
+    }
+]
