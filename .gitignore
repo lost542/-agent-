@@ -14,6 +14,10 @@ __pycache__/
 .idea/
 .vscode/
 
+# ===== Office 临时锁文件（打开 xlsx 时自动生成）=====
+~$*
+.~lock.*
+
 # ===== 系统文件 =====
 .DS_Store
 Thumbs.db

@@ -13,6 +13,7 @@
 import json
 import urllib.request
 import urllib.error
+import openpyxl
 from real_agent import call_agent, load_api_key
 
 API_KEY = load_api_key()
@@ -135,25 +136,77 @@ def run_one(case):
     # 3. 判定
     verdict = judge(flags)
     print("[3] 最终结论：", verdict)
-    return verdict
+
+    # 返回完整明细，供落盘使用
+    return {
+        "case_id": case["case_id"],
+        "user_input": case["user_input"],
+        "agent_answer": answer,
+        "flags": flags,
+        "verdict": verdict,
+    }
+
+
+# ========== 报告落盘：把明细 + 汇总写进 xlsx ==========
+def save_report(details, path="批量真实评测报告.xlsx"):
+    workbook = openpyxl.Workbook()
+
+    # Sheet1：评测明细
+    sheet = workbook.active
+    sheet.title = "评测明细"
+    headers = ["用例编号", "用户输入", "Agent 真实回答", "提取的结构化字段", "判定结论"]
+    sheet.append(headers)
+    for d in details:
+        sheet.append([
+            d["case_id"],
+            d["user_input"],
+            d["agent_answer"],
+            str(d["flags"]),
+            d["verdict"],
+        ])
+    # 简单设置列宽，方便查看
+    for col, width in zip("ABCDE", [16, 40, 70, 45, 14]):
+        sheet.column_dimensions[col].width = width
+
+    # Sheet2：汇总统计
+    summary = workbook.create_sheet("汇总统计")
+    total = len(details)
+    pass_count = sum(1 for d in details if d["verdict"] == "Pass")
+    fail_count = total - pass_count
+    pass_rate = round(pass_count / total * 100, 2) if total else 0
+    summary.append(["指标", "数值"])
+    summary.append(["被测对象", "真实 LLM Agent（DeepSeek）"])
+    summary.append(["评测用例数", total])
+    summary.append(["Pass 数量", pass_count])
+    summary.append(["Fail 数量", fail_count])
+    summary.append(["通过率(%)", pass_rate])
+    summary.column_dimensions["A"].width = 20
+    summary.column_dimensions["B"].width = 30
+
+    workbook.save(path)
+    return path
 
 
 # ========== 批量执行 + 汇总报告 ==========
 if __name__ == "__main__":
     print("========== 批量真实评测（被测对象：真实 LLM Agent）==========")
-    results = []
+    details = []
     for case in CASES:
-        results.append((case["case_id"], run_one(case)))
+        details.append(run_one(case))
 
-    pass_count = sum(1 for _, v in results if v == "Pass")
-    fail_count = len(results) - pass_count
+    pass_count = sum(1 for d in details if d["verdict"] == "Pass")
+    fail_count = len(details) - pass_count
 
     print("\n========== 批量评测报告 ==========")
-    print("评测用例数：", len(results))
+    print("评测用例数：", len(details))
     print("Pass 数量：", pass_count)
     print("Fail 数量：", fail_count)
-    print("通过率：", round(pass_count / len(results) * 100, 2), "%")
+    print("通过率：", round(pass_count / len(details) * 100, 2), "%")
     print("明细：")
-    for cid, v in results:
-        print( cid, "->", v)
+    for d in details:
+        print("  ", d["case_id"], "->", d["verdict"])
     print("=" * 50)
+
+    # 落盘
+    report_path = save_report(details)
+    print("评测报告已保存：", report_path)
