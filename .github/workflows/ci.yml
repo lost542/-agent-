@@ -1,0 +1,38 @@
+name: pytest 回归测试
+
+# 触发时机：push 到 main/master，或对这些分支提 PR
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. 拉取仓库代码
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      # 2. 准备 Python 环境
+      - name: 设置 Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # 3. 安装测试依赖
+      #    只装 pytest：两个测试文件只依赖标准库 + 纯规则函数，
+      #    不读 .env、不调 API，所以 CI 环境无需密钥、无需 openai。
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+
+      # 4. 运行回归测试
+      #    --ignore=deepseek_test.py：该文件命中 pytest 的 *_test.py 收集规则，
+      #    但它是顶层就会读 .env / import openai 的调试脚本，不是单元测试。
+      #    CI 环境无密钥无 openai，收集到它会导致整个测试任务失败，故排除。
+      - name: 运行 pytest
+        run: python -m pytest -v --ignore=deepseek_test.py
