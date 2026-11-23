@@ -21,7 +21,7 @@ test_results = [
 ]
 
 # 批量写入
-for row, result in enumerate(test_results):
+for row, result in enumerate(test_results,start=2):
 
     sheet.cell(row=row, column=10).value = result["actual"]
 
