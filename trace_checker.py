@@ -95,12 +95,17 @@ def check_price_consistency(trace):
     final_output = trace.get("final_output", "")
 
     # 5. 提取最终回答中的价格
-    result = re.search(r"\d+", final_output)
+    # 优先抓"数字 + 元"：中文标价习惯，容忍空格、中文括号（1200元 / 1200 元 / 1200（元））
+    # 且能天然跳过航班号——MU001 后面没有"元"，不会被误抓
+    result = re.search(r"(\d+)\s*[（(]?\s*元", final_output)
+    if result is None:
+        # 兜底：抓"价格/票价"后面（允许少量非数字字符，如 markdown 星号）的数字
+        result = re.search(r"(?:价格|票价)[^0-9]{0,6}?(\d+)", final_output)
 
     if result is None:
         return "Fail：最终回答中没有价格"
 
-    final_price = int(result.group())
+    final_price = int(result.group(1))
 
     # 6. 比较两个价格
     if tool_price == final_price:
@@ -116,7 +121,8 @@ def check_price_consistency(trace):
 #
 # trace = {"tool_output": {}}
 # print(check_trace_tool_output(trace))
-#
+
+# 调试代码（已注释，避免 import 时产生脏输出）
 # trace = {
 #     "tool_output": {
 #         "lowest_price": 1200
