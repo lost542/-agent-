@@ -1,4 +1,4 @@
-# tool_loop_demo.py（第二步：两轮循环 + Trace 记录）
+# tool_loop_demo.py（第三步：封装成函数，return 真实 Trace 供适配层调用）
 import json
 import urllib.request
 import urllib.error
@@ -56,44 +56,55 @@ def search_flights(departure, destination):
     """模拟工具：暂时写死返回，先把循环跑通"""
     return {"lowest_price": 1200, "flights": [{"no": "MU001"}]}
 
-# ===== 主流程 =====
-messages = [
-    {"role": "system", "content": "你是机票客服。查航班时必须调用 search_flights 工具，不要凭空报价格。"},
-    {"role": "user", "content": "帮我查一下东京到上海最低价的航班"}
-]
 
-# 第一轮：模型决定调用工具
-msg1 = call_api(messages)
-tool_call = msg1["tool_calls"][0]
-args = json.loads(tool_call["function"]["arguments"])   # 注意 json.loads：arguments 是字符串
+def run_flight_agent(user_input):
+    """跑一轮 Function Calling，返回真实 Trace。
 
-# 执行工具
-tool_result = search_flights(args["departure"], args["destination"])
+    这是过程评测的数据源：它产生的 trace 会被适配层接住，
+    再喂给 trace_checker 的四个检查点判定。
+    """
+    messages = [
+        {"role": "system", "content": "你是机票客服。查航班时必须调用 search_flights 工具，不要凭空报价格。"},
+        {"role": "user", "content": user_input}
+    ]
 
-# 记 Trace（这就是过程评测要的字段）
-trace = {
-    "tool_name": tool_call["function"]["name"],
-    "tool_args": args,
-    "tool_output": tool_result
-}
-print("工具名:", trace["tool_name"])
-print("参数:", trace["tool_args"])
-print("工具返回:", trace["tool_output"])
+    # 第一轮：模型决定调用工具
+    msg1 = call_api(messages)
+    tool_call = msg1["tool_calls"][0]
+    args = json.loads(tool_call["function"]["arguments"])   # arguments 是 JSON 字符串
 
-# 第二轮：把工具结果喂回模型，拿最终回答
-messages.append(msg1)                                    # ① 原样放回 assistant 的 tool_calls 消息
-messages.append({                                        # ② tool 结果消息
-    "role": "tool",
-    "tool_call_id": tool_call["id"],
-    "content": json.dumps(tool_result, ensure_ascii=False)
-})
-msg2 = call_api(messages)
-trace["final_output"] = msg2.get("content")
-print("最终回答:", trace["final_output"])
-print("完整 Trace:", trace)
+    # 执行工具
+    tool_result = search_flights(args["departure"], args["destination"])
 
-# ===== 用真实链路产生的 Trace 喂给 Checker 判定 =====
-# 这一步是质变点：过程评测不再跑 mock 手写假数据，而是跑真实 Agent 的轨迹
-from trace_checker import check_price_consistency
+    # 记 Trace（过程评测要的字段）
+    trace = {
+        "tool_name": tool_call["function"]["name"],
+        "tool_args": args,
+        "tool_output": tool_result
+    }
 
-print("价格一致性判定:", check_price_consistency(trace))
+    # 第二轮：把工具结果喂回模型，拿最终回答
+    messages.append(msg1)                                    # 原样放回 assistant 的 tool_calls 消息
+    messages.append({                                        # tool 结果消息
+        "role": "tool",
+        "tool_call_id": tool_call["id"],
+        "content": json.dumps(tool_result, ensure_ascii=False)
+    })
+    msg2 = call_api(messages)
+    trace["final_output"] = msg2.get("content")
+
+    # 关键：把 trace 交出去，不再 print 完就蒸发
+    return trace
+
+
+if __name__ == "__main__":
+    from trace_checker import check_price_consistency
+
+    trace = run_flight_agent("帮我查一下东京到上海最低价的航班")
+
+    print("工具名:", trace["tool_name"])
+    print("参数:", trace["tool_args"])
+    print("工具返回:", trace["tool_output"])
+    print("最终回答:", trace["final_output"])
+    print("完整 Trace:", trace)
+    print("价格一致性判定:", check_price_consistency(trace))

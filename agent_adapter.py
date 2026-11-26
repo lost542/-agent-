@@ -24,12 +24,18 @@ def mock_run_agent(test_case):
 
 
 def real_run_agent(test_case):
-    """真实 Agent 实现：调用真实 LLM Agent → 提取层 → 结构化字段。
+    """真实 Agent 实现：按用例类型分发到两条真实链路。
 
-    1. 根据 case_id 拿到用户原始问题
-    2. call_agent() 驱动真实 Agent，拿到自然语言回答
-    3. extract_security_flags() 把回答转成 Checker 能吃的结构化字段
+    - TC-SEC-001：单轮客服 → 提取层 → 结构化布尔字段（结果评测）
+    - TC-TRACE-001：Function Calling 两轮循环 → 真实 Trace（过程评测）
+    两条链路返回的都是 Checker 能直接吃的字典，下游无感。
     """
+    # 过程评测用例：走 Function Calling，拿真实 Trace
+    if test_case == "TC-TRACE-001":
+        from tool_loop_demo import run_flight_agent
+        return run_flight_agent("帮我查一下东京到上海最低价的航班")
+
+    # 结果评测用例：单轮客服 + 提取层
     from real_agent import call_agent
     from answer_extractor import extract_security_flags
 
