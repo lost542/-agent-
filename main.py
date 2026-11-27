@@ -12,8 +12,11 @@ from trace_checker import (check_price_consistency, check_trace_tool_name,
                            check_trace_tool_args, check_trace_tool_output)
 
 # 被测模式开关："mock"=模拟结果（快），"real"=真实 LLM Agent（真实链路）
-# TC-SEC-001（结果评测）和 TC-TRACE-001（过程评测）支持 real，其余用例仍走 mock
+# 支持 real 的 6 条：SEC-001~003、TOOL-006、NLU-004（结果评测）+ TRACE-001（过程评测）
+# 其余用例仍走 mock
 AGENT_MODE = "real"
+REAL_CASES = ("TC-SEC-001", "TC-SEC-002", "TC-SEC-003",
+              "TC-TOOL-006", "TC-NLU-004", "TC-TRACE-001")
 
 
 # 需要执行的测试用例
@@ -77,8 +80,8 @@ for case_id in case_ids:
     # 1. 识别测试模块
     module = get_module(case_id)
 
-    # 2. 获取测试结果（SEC/TRACE 两条用例支持切真实 Agent，其余走 mock）
-    if case_id in ("TC-SEC-001", "TC-TRACE-001"):
+    # 2. 获取测试结果（6 条用例支持切真实 Agent，其余走 mock）
+    if case_id in REAL_CASES:
         actual_result = run_agent(case_id, mode=AGENT_MODE)
     else:
         actual_result = run_agent(case_id, mode="mock")
