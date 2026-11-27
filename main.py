@@ -1,7 +1,13 @@
 from agent_adapter import run_agent
 from batch_checker import (check_permission, check_quality,
 check_quality_002, check_quality_003, check_quality_004
-,check_tool_001,check_tool_002,check_error,check_security)
+,check_tool_001,check_tool_002,check_error,check_security
+,check_error_002,check_error_003,check_error_004
+,check_security_002, check_security_003
+,check_tool_003, check_tool_004, check_tool_005, check_tool_006
+,check_nlu_001, check_nlu_002, check_nlu_003, check_nlu_004
+,check_mm_001, check_mm_002, check_mm_003
+,check_perf_001, check_perf_002)
 from trace_checker import (check_price_consistency, check_trace_tool_name,
                            check_trace_tool_args, check_trace_tool_output)
 
@@ -33,6 +39,15 @@ def get_module(case_id):
 
     elif case_id.startswith("TC-SEC-"):
         return "SEC"
+
+    elif case_id.startswith("TC-NLU-"):
+        return "NLU"
+
+    elif case_id.startswith("TC-MM-"):
+        return "MM"
+
+    elif case_id.startswith("TC-PERF-"):
+        return "PERF"
     else:
         return "其他模块"
 
@@ -105,6 +120,14 @@ for case_id in case_ids:
 
             test_status = check_tool_002(actual_result)
 
+        elif case_id == "TC-TOOL-003":
+            test_status = check_tool_003(actual_result)
+        elif case_id == "TC-TOOL-004":
+            test_status = check_tool_004(actual_result)
+        elif case_id == "TC-TOOL-005":
+            test_status = check_tool_005(actual_result)
+        elif case_id == "TC-TOOL-006":
+            test_status = check_tool_006(actual_result)
 
         else:
 
@@ -130,7 +153,12 @@ for case_id in case_ids:
 
         if case_id == "TC-ERR-001":
             test_status = check_error(actual_result)
-
+        elif case_id == "TC-ERR-002":
+            test_status = check_error_002(actual_result)
+        elif case_id == "TC-ERR-003":
+            test_status = check_error_003(actual_result)
+        elif case_id == "TC-ERR-004":
+            test_status = check_error_004(actual_result)
         else:
             test_status = "未配置"
 
@@ -138,9 +166,42 @@ for case_id in case_ids:
 
         if case_id == "TC-SEC-001":
             test_status = check_security(actual_result)
-
+        elif case_id == "TC-SEC-002":
+            test_status = check_security_002(actual_result)
+        elif case_id == "TC-SEC-003":
+            test_status = check_security_003(actual_result)
         else:
             test_status = "未配置"
+
+    elif module == "NLU":
+
+        nlu_checkers = {
+            "TC-NLU-001": check_nlu_001,
+            "TC-NLU-002": check_nlu_002,
+            "TC-NLU-003": check_nlu_003,
+            "TC-NLU-004": check_nlu_004,
+        }
+        checker = nlu_checkers.get(case_id)
+        test_status = checker(actual_result) if checker else "未配置"
+
+    elif module == "MM":
+
+        mm_checkers = {
+            "TC-MM-001": check_mm_001,
+            "TC-MM-002": check_mm_002,
+            "TC-MM-003": check_mm_003,
+        }
+        checker = mm_checkers.get(case_id)
+        test_status = checker(actual_result) if checker else "未配置"
+
+    elif module == "PERF":
+
+        perf_checkers = {
+            "TC-PERF-001": check_perf_001,
+            "TC-PERF-002": check_perf_002,
+        }
+        checker = perf_checkers.get(case_id)
+        test_status = checker(actual_result) if checker else "未配置"
 
     for row in range(2, sheet.max_row + 1):
         if sheet.cell(row=row, column=1).value == case_id:
@@ -173,7 +234,7 @@ else:
 # 生成测试报告
 print("\n========== Agent测试报告 ==========")
 print("项目名称：机票Agent")
-print("测试模块：AUTH + QUAL + TOOL")
+print("测试模块：AUTH + QUAL + TOOL + TRACE + ERR + SEC + NLU + MM + PERF")
 print("测试总数：", total_count)
 print("通过数量：", pass_count)
 print("失败数量：", fail_count)
