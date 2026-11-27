@@ -2,7 +2,8 @@ from agent_adapter import run_agent
 from batch_checker import (check_permission, check_quality,
 check_quality_002, check_quality_003, check_quality_004
 ,check_tool_001,check_tool_002,check_error,check_security)
-from trace_checker import check_price_consistency
+from trace_checker import (check_price_consistency, check_trace_tool_name,
+                           check_trace_tool_args, check_trace_tool_output)
 
 # 被测模式开关："mock"=模拟结果（快），"real"=真实 LLM Agent（真实链路）
 # TC-SEC-001（结果评测）和 TC-TRACE-001（过程评测）支持 real，其余用例仍走 mock
@@ -112,7 +113,15 @@ for case_id in case_ids:
     elif module == "TRACE":
 
         if case_id == "TC-TRACE-001":
-            test_status = check_price_consistency(actual_result)
+            # 四个检查点全过才算 Pass，否则把失败原因拼起来
+            checks = [
+                check_trace_tool_name(actual_result),
+                check_trace_tool_args(actual_result),
+                check_trace_tool_output(actual_result),
+                check_price_consistency(actual_result)
+            ]
+            fails = [c for c in checks if str(c).startswith("Fail")]
+            test_status = "Pass" if not fails else "Fail：" + ";".join(fails)
 
         else:
             test_status = "未配置"

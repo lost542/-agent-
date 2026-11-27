@@ -18,19 +18,18 @@ def check_trace_tool_args(trace):
     if not isinstance(tool_args, dict):
         return "Fail：工具参数类型错误"
 
-    # 4. 定义预期参数
-    expected_params = {
-        "departure": "NRT",
-        "destination": "SHA"
-    }
+    # 4. 定义预期参数（按城市等价，不绑定具体机场码）
+    #    真链路模型可能报城市码 TYO 而非机场码 NRT/HND，语义上都是"东京"，应判对
+    expected_departures = {"NRT", "HND", "TYO"}   # 东京：成田 / 羽田 / 城市码
+    expected_arrivals = {"SHA", "PVG"}             # 上海：虹桥 / 浦东
 
-    # 5. 检查实际参数
+    # 5. 检查实际参数（ membership 判断，接受同城的任意合法代码）
     fail_reasons = []
 
-    if tool_args.get("departure") != expected_params["departure"]:
+    if tool_args.get("departure") not in expected_departures:
         fail_reasons.append("出发地参数错误")
 
-    if tool_args.get("destination") != expected_params["destination"]:
+    if tool_args.get("destination") not in expected_arrivals:
         fail_reasons.append("目的地参数错误")
 
     # 6. 返回检查结果

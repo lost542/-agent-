@@ -14,8 +14,15 @@ def test_tool_args_pass():
 
 
 def test_tool_args_wrong_value():
-    trace = {"tool_args": {"departure": "HND", "destination": "SHA"}}
+    # OSA = 大阪，不是东京的三个合法代码之一，应判 Fail
+    trace = {"tool_args": {"departure": "OSA", "destination": "SHA"}}
     assert check_trace_tool_args(trace).startswith("Fail")
+
+
+def test_tool_args_tyo_pass():
+    # 真链路模型常报城市码 TYO 而非机场码 NRT/HND，同城等价应判 Pass
+    trace = {"tool_args": {"departure": "TYO", "destination": "PVG"}}
+    assert check_trace_tool_args(trace) == "Pass"
 
 
 def test_tool_args_wrong_type():
