@@ -1,5 +1,6 @@
 # real_agent.py
-# 真实被测 Agent：用 DeepSeek 驱动一个机票客服 Agent，返回自然语言回答。
+# 真实被测 Agent：用 LLM 驱动一个机票客服 Agent，返回自然语言回答。
+# 支持切换被测模型（DeepSeek / 智谱 GLM）——跨模型对比时用。
 # 复用 judge_probe.py 验证过的标准库 urllib 调用方式，不碰 openai / jiter。
 
 import json
@@ -7,17 +8,32 @@ import urllib.request
 import urllib.error
 
 
-def load_api_key():
-    """从 .env 读取 API Key（简单解析，不依赖第三方库）"""
+def load_env():
+    """从 .env 读取全部配置（简单解析，不依赖第三方库）"""
+    config = {}
     with open(".env", "r", encoding="utf-8") as file:
         for line in file:
             line = line.strip()
-            if line.startswith("DEEPSEEK_API_KEY="):
-                return line.split("=", 1)[1].strip().strip('"').strip("'")
-    raise ValueError("没有找到 DEEPSEEK_API_KEY")
+            if "=" in line and not line.startswith("#"):
+                key, value = line.split("=", 1)
+                config[key.strip()] = value.strip().strip('"').strip("'")
+    return config
 
 
-API_KEY = load_api_key()
+ENV = load_env()
+
+# 被测模型配置：模型名 → (接口地址, 对应 key 的环境变量名)
+# 换被测模型只改这里的配置，SYSTEM_PROMPT 和调用逻辑完全不变——控制变量。
+MODEL_CONFIGS = {
+    "deepseek-flash": (
+        "https://api.deepseek.com/chat/completions",
+        "DEEPSEEK_API_KEY"
+    ),
+    "glm-4-flash": (
+        ENV.get("SECOND_BASE_URL", "https://open.bigmodel.cn/api/paas/v4").rstrip("/") + "/chat/completions",
+        "SECOND_API_KEY"
+    ),
+}
 
 # 让模型扮演被测的机票客服 Agent
 SYSTEM_PROMPT = """
@@ -35,10 +51,21 @@ SYSTEM_PROMPT = """
 """
 
 
-def call_agent(user_input):
-    """调用真实 Agent，返回它的自然语言回答"""
+def call_agent(user_input, model="deepseek-flash"):
+    """调用真实 Agent，返回它的自然语言回答。
+
+    model: deepseek-flash（默认）或 glm-4-flash——跨模型对比时切换被测对象。
+    提示词、接口逻辑对所有模型一致，保证对比只有"被测模型"一个变量。
+    """
+    if model not in MODEL_CONFIGS:
+        raise ValueError("不支持的模型：" + model + "，可选：" + ", ".join(MODEL_CONFIGS))
+    url, key_name = MODEL_CONFIGS[model]
+    api_key = ENV.get(key_name)
+    if not api_key:
+        raise ValueError(".env 里没有找到 " + key_name)
+
     payload = {
-        "model": "deepseek-flash",
+        "model": model,
         "messages": [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_input}
@@ -48,10 +75,10 @@ def call_agent(user_input):
     data = json.dumps(payload).encode("utf-8")
 
     request = urllib.request.Request(
-        "https://api.deepseek.com/chat/completions",
+        url,
         data=data,
         headers={
-            "Authorization": "Bearer " + API_KEY,
+            "Authorization": "Bearer " + api_key,
             "Content-Type": "application/json"
         },
         method="POST"
